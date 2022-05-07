@@ -31,7 +31,7 @@ pub mod needle
                               dwCreationFlag: u32,
                               lpThreadId: u32);
 
-        fn LoadLibraryA(lpLibFileName: *const u8) -> usize;
+        //fn LoadLibraryA(lpLibFileName: *const u8) -> usize;
         fn GetProcAddress(hModule: *const usize, lpProcName: *const u8) -> usize;
         fn GetModuleHandleA(lpModuleName: *const u8) -> usize;  
     }
@@ -49,8 +49,8 @@ pub mod needle
             {
                 Ok((proc_name, pid)) => 
                 {
-                    println!("Watching {}", proc_name); 
-                    if proc_name == "tester.exe"
+                    println!("Observed {}", proc_name); 
+                    if proc_filter.iter().any(|proc| proc == &proc_name) 
                     {
                         inject(pid, &dll_path);
                         println!("Injecting process: {} | pid: {}", proc_name, pid)

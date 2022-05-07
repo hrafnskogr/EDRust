@@ -2,11 +2,11 @@
 name = "overlord"
 version = "0.1.0"
 edition = "2021"
-authors = ["Hrafnskogr <hrafnskogr@pm.me"]
+authors = ["Hrafnskogr <hrafnskogr@pm.me>"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 rand = "0.7.3"
 ctrlc = "3.2.2"
-clap = "2.33.3"
+clap = { version = "3.1.17", features = ["derive"] }

@@ -8,36 +8,33 @@ use std::sync::mpsc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-use clap::{App, Arg};
-
 use crate::injector::needle;
 use crate::observator::watcher;
 
-fn main()
-{
-    let matches = App::new("procject")
-                       .version("0.666")
-                       .author("Hrafnskogr <hrafnskogr@pm.me>")
-                       .about("Userland EDR PoC")
-                       .arg(Arg::with_name("dll")
-                                .help("Path of the dll to inject in processes")
-                                .short("d")
-                                .long("dll")
-                                .required(true))
-                       .arg(Arg::with_name("proc_filter")
-                                .help("Name of procs to observe and inject")
-                                .short("p")
-                                .long("procs")
-                                .multiple(true)
-                                .required(true))
-                       .get_matches();
+use clap::Parser;
 
-    let proc_filter: Vec<&str> = matches.values_of("proc_filter").unwrap().collect();
-    
-    init_thread_and_launch(matches.value_of("dll").unwrap(), proc_filter);
+#[derive(Parser)]
+#[clap(author, version, about = "-- Userland EDR PoC --", long_about = None)]
+struct Args
+{
+    /// Path of the dll to be injected in the processes
+    #[clap(short, long)]
+    dll: String,
+
+    /// [Multiple] Name of the processes (including file extension) to be observed and injected.
+    /// Example : WindowsTerminal.exe
+    #[clap(short='p', long="procs")]
+    proc_filter: Vec<String>,
 }
 
-fn init_thread_and_launch(dll_path: &str, proc_filter: Vec<&str>) 
+
+fn main()
+{
+    let args = Args::parse();
+    init_thread_and_launch(args.dll, args.proc_filter);
+}
+
+fn init_thread_and_launch(dll_path: String, proc_filter: Vec<String>) 
 {
     // Define an atomic bool as a flag to know whether to stop or not
     let should_stop = Arc::new(AtomicBool::new(false));
@@ -63,7 +60,7 @@ fn init_thread_and_launch(dll_path: &str, proc_filter: Vec<&str>)
     // Init and spawn the injector thread
     let stop = should_stop.clone();
     let dll_str = String::from(dll_path);
-    let filter: Vec<String> = proc_filter.iter().map(|&x| String::from(x)).collect();
+    let filter: Vec<String> = proc_filter.clone(); 
     let th = thread::spawn(move || { needle::injecter(dll_str, filter, stop, rx); } );
     threads.push(th);
 
