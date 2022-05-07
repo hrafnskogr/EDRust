@@ -1,0 +1,21 @@
+[package]
+name = "vigilante"
+version = "0.1.0"
+edition = "2021"
+authors = ["Hrafnskogr <hrafnskogr@pm.me"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+winapi = { version = "0.3.9", features = ["consoleapi", "minwindef"]}
+detour = "0.8.1"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+lto = true
+panic = "abort"
+opt-level = "z"
+codegen-units = 1
+
