@@ -14,14 +14,13 @@ extern "system"
     fn LoadLibraryA(lpLibFilename: *const u8) -> usize;
     fn GetProcAddress(hModule: usize, lpProcName: *const u8) -> usize;
 
-    //fn MessageBoxA(hwnd: *const usize, caption: *const u8, title: *const u8, flags: usize) -> usize;
+    fn MessageBoxA(hwnd: *const usize, caption: *const u8, title: *const u8, flags: usize) -> usize;
 }
 
 static_detour!
 {
-    static MessageBoxAHook: unsafe extern "system" fn(*const usize, *const u8, *const u8, usize) -> usize;
+    static OpenProcessHook: unsafe extern "system" fn(u32, bool, u32) -> usize;
 }
-
 
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
@@ -32,7 +31,18 @@ extern "system" fn DllMain(dll_module: HINSTANCE, call_reason: DWORD, reserved: 
 
     match call_reason
     {
-        DLL_PROCESS_ATTACH => init().unwrap(),
+        DLL_PROCESS_ATTACH => 
+        {
+            match init()
+            {
+                Ok(_) => (),
+                Err(x) =>
+                {
+                    println!("Error : {:?}", x);
+                    ()
+                },
+            }
+        },
         DLL_PROCESS_DETACH => (),
         _ => (),
     }
@@ -40,27 +50,23 @@ extern "system" fn DllMain(dll_module: HINSTANCE, call_reason: DWORD, reserved: 
     minwindef::TRUE
 }
 
-type FnMessageBoxA = unsafe extern "system" fn(*const usize, *const u8, *const u8, usize) -> usize;
+type OpenProc = unsafe extern "system" fn(u32, bool, u32) -> usize;
 
 fn init() -> Result<(), Box<dyn Error>>
 {
     unsafe
     {
-        let user_dll: usize = LoadLibraryA("user32\0".as_ptr());
-        let msg_box_addr: usize = GetProcAddress(user_dll, "MessageBoxA\0".as_ptr());
+        let kernel32_dll: usize = LoadLibraryA("kernel32\0".as_ptr());
+        let open_process_addr: usize = GetProcAddress(kernel32_dll, "OpenProcess\0".as_ptr());
 
-        //let func = msg_box_addr as *const unsafe extern "system" fn(*const usize, *const u8, *const u8, usize) -> usize;
-
-        let func: FnMessageBoxA = mem::transmute(msg_box_addr); 
-
-        println!("injected");
-
-        MessageBoxAHook.initialize(func, pipo)?
+        let func: OpenProc = mem::transmute(open_process_addr);
+        OpenProcessHook.initialize(func, pipo)?
                        .enable()?;
-
+        
         Ok(())
-/*
 
+/*
+ * Reminder: 
         let func = &msg_box_addr as *const usize
                                  as *const fn(*const usize, *const u8, *const u8, usize) -> usize;
         (*func)(0x0 as *const usize, "Injected !\0".as_ptr(), "Title\0".as_ptr(), 0);
@@ -70,11 +76,15 @@ fn init() -> Result<(), Box<dyn Error>>
     }
 }
 
-fn pipo(hwnd: *const usize, text: *const u8, title: *const u8, flags: usize) -> usize
+#[allow(unused_variables)]
+fn pipo(desired_access: u32, inherit_handle: bool, pid: u32) -> usize
 {
     unsafe
     {
-        MessageBoxAHook.call(hwnd, text, "replaced\0".as_ptr(), flags)
+        MessageBoxA(0x0 as *const usize, "No!\0".as_ptr(), "Computer says...\0".as_ptr(), 0x0);
+
     }
+
+    usize::MAX
 }
 
