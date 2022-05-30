@@ -85,6 +85,6 @@ fn pipo(desired_access: u32, inherit_handle: bool, pid: u32) -> usize
 
     }
 
-    usize::MAX
+    0
 }
 
